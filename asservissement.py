@@ -7,7 +7,7 @@ picam2 = Picamera2()
 picam2.configure(picam2.create_preview_configuration())
 picam2.start()
 
-pixels_per_cm = 10  # echelle fictive
+SCALE = 5  # echelle fictive
 
 print("Detection en cours... Appuyez sur 'q' pour quitter.")
 
@@ -61,8 +61,8 @@ try:
             origin_x = min_x
             origin_y = max_y  # car y descend vers le bas
 
-            local_x_cm = (cX - origin_x) / pixels_per_cm
-            local_y_cm = (origin_y - cY) / pixels_per_cm
+            local_x_cm = (cX - origin_x) / SCALE
+            local_y_cm = (origin_y - cY) / SCALE
 
             # Sauvegarder dans un fichier
             with open("position_reelle.txt", "w") as f:
