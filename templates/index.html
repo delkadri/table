@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Sélection de dessin</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        .image-option {
+            border: 2px solid transparent;
+            padding: 10px;
+            display: inline-block;
+            margin: 10px;
+            cursor: pointer;
+        }
+        .image-option.selected {
+            border-color: blue;
+            background-color: #e6f0ff;
+        }
+    </style>
+    <script>
+        let selectedFilename = "";
+
+        function selectImage(filename, element) {
+            document.getElementById('selectedImage').value = filename;
+            selectedFilename = filename;
+
+            // Supprimer la classe 'selected' de tous
+            const options = document.querySelectorAll('.image-option');
+            options.forEach(opt => opt.classList.remove('selected'));
+
+            // Ajouter la classe 'selected' à l'élément cliqué
+            element.classList.add('selected');
+
+            // Afficher le bouton "Télécharger"
+            document.getElementById("download-section").style.display = "block";
+        }
+
+        function enableDrawButton() {
+            document.getElementById('draw-button').disabled = false;
+            document.getElementById('status').innerText = "✅ Image téléchargée avec succès !";
+        }
+    </script>
+</head>
+<body>
+    <div style="position: absolute; top: 10px; right: 10px;">
+        <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Logo" style="height: 130px;">
+    </div>
+    <h1>Table Traçante</h1>
+    
+    <h2>Sélectionnez une image à dessiner</h2>
+
+    <form id="imageForm" method="POST">
+        <input type="hidden" id="selectedImage" name="example">
+
+        <div class="image-option" onclick="selectImage('coeur.svg', this)">❤️ Cœur</div>
+        <div class="image-option" onclick="selectImage('triangle.svg', this)">🔺 Triangle</div>
+        <div class="image-option" onclick="selectImage('spirale.svg', this)">🌀 Spirale</div>
+
+        <div id="download-section" style="display:none; margin-top: 20px;">
+            <button type="submit" name="confirm_selection" value="1">Télécharger l'image sélectionnée</button>
+        </div>
+    </form>
+
+    <h3>Ou téléversez votre propre fichier SVG :</h3>
+    <form method="POST" enctype="multipart/form-data">
+        <input type="file" name="file" accept=".svg" required>
+        <button type="submit" name="upload">Téléverser</button>
+    </form>
+
+    {% if downloaded %}
+    <script>enableDrawButton();</script>
+    {% endif %}
+
+    <p id="status">{% if downloaded %}✅ Image téléchargée avec succès !{% endif %}</p>
+
+    <form method="POST">
+        <input type="hidden" name="draw" value="1">
+        <button id="draw-button" type="submit" style="background-color: red; color: white; padding: 12px 24px; font-size: 16px; border: none; border-radius: 6px; cursor: pointer; margin-top: 30px" {% if not downloaded %}disabled{% endif %}>
+            🎨 Dessiner
+        </button>
+    </form>
+</body>
+</html>
