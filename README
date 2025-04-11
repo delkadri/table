@@ -1,0 +1,10 @@
+# EXECUTE THESE STEPS IF YOU HAVE ERRORS EXECUTING
+rm -rf venv
+python3 -m venv venv
+source venv/bin/activate
+pip install svgpathtools
+pip install pyserial
+pip install flask
+pip install opencv-python
+pip install picamera2
+

@@ -38,7 +38,7 @@ deactivate () {
 # unset irrelevant variables
 deactivate nondestructive
 
-VIRTUAL_ENV=/home/table_tracante/Desktop/projet_test/venv
+VIRTUAL_ENV=/home/table_tracante/Desktop/projet_test/table/venv
 export VIRTUAL_ENV
 
 _OLD_VIRTUAL_PATH="$PATH"
