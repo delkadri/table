@@ -6,18 +6,17 @@ import xml.etree.ElementTree as ET
 
 # === CONFIGURATION ===
 SVG_FILE = "coeur.svg"
-STEP_SIZE = 2           # distance entre points (mm)
-MAX_SIZE = 200          # surface physique max (mm)
+STEP_SIZE = 2           # mm entre points
+MAX_SIZE = 200          # surface max en mm
 SERIAL_PORT = "/dev/ttyUSB0"
 BAUD_RATE = 115200
 
-# === OUVERTURE DU PORT SÉRIE ===
+# === CONNEXION SÉRIE ===
 print("Connexion à l'ESP32...")
 ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
 time.sleep(2)
 print("Connexion établie !")
 
-# === ENVOI DE COMMANDE À L'ESP32 ===
 def send_command(cmd):
     ser.write((cmd + "\n").encode())
     print("→", cmd)
@@ -28,7 +27,6 @@ def send_command(cmd):
         elif response:
             print("← ESP32:", response)
 
-# === CALCUL AUTO DU SCALE ===
 def calculate_scale(svg_file, max_size=MAX_SIZE):
     tree = ET.parse(svg_file)
     root = tree.getroot()
@@ -45,16 +43,16 @@ def calculate_scale(svg_file, max_size=MAX_SIZE):
     print(f"SVG dimensions: {width:.1f} x {height:.1f} px → SCALE: {scale:.3f}")
     return scale
 
-SCALE = calculate_scale(SVG_FILE)
+def is_far_enough(x1, y1, x2, y2, threshold=0.01):
+    return math.hypot(x2 - x1, y2 - y1) > threshold
 
-# === CHARGEMENT DU SVG ===
+# === SETUP ===
+SCALE = calculate_scale(SVG_FILE)
 paths, attributes, svg_attributes = svg2paths2(SVG_FILE)
 current_x, current_y = 0, 0
 
-# === TRAITEMENT DE CHAQUE PATH ===
+# === TRAITEMENT DES PATHS ===
 for path in paths:
-    first_point = True  # début du path
-
     for segment in path:
         length = segment.length(error=1e-3)
         steps = max(1, int(length * SCALE / STEP_SIZE))
@@ -64,23 +62,19 @@ for path in paths:
             x = point.real * SCALE
             y = point.imag * SCALE
 
-            if first_point:
-                # Déplacer sans dessiner
-                if (current_x != x or current_y != y):
+            if i == 0:
+                if is_far_enough(current_x, current_y, x, y):
                     send_command("PEN_UP")
                     send_command(f"MOVE X={x:.2f} Y={y:.2f}")
                     current_x, current_y = x, y
                 send_command("PEN_DOWN")
-                first_point = False
 
-            # Avancer vers le point suivant
             send_command(f"MOVE X={x:.2f} Y={y:.2f}")
             current_x, current_y = x, y
 
-    # À la fin du path, lever le stylo
     send_command("PEN_UP")
 
-# === FIN DU DESSIN ===
+# === FIN ===
 send_command("PEN_UP")
 send_command("END")
 ser.close()
