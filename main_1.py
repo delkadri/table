@@ -1,4 +1,4 @@
-#SANS TRAITEMENT DE COURBE
+#SANS TRAITEMENT DE COURBE AVEC SCALE
 import serial
 import time
 import math
@@ -25,6 +25,38 @@ def send_command(cmd):
             break
         elif response:
             print("← ESP32:", response)
+
+
+def calculate_scale(svg_file, max_size=MAX_SIZE):
+    tree = ET.parse(svg_file)
+    root = tree.getroot()
+
+    # Vérifier la présence du viewBox
+    viewBox = root.attrib.get('viewBox')
+    if viewBox:
+        # Si le viewBox est présent, il contient les informations sur la taille réelle de l'image
+        viewBox_values = viewBox.split()
+        width = float(viewBox_values[2])
+        height = float(viewBox_values[3])
+    else:
+        # Si pas de viewBox, essayer d'extraire les dimensions width et height
+        width = float(root.attrib.get('width', '0').replace('px', '').strip())
+        height = float(root.attrib.get('height', '0').replace('px', '').strip())
+
+    # Calculer le facteur de mise à l'échelle basé sur les dimensions maximales
+    scale_x = max_size / width
+    scale_y = max_size / height
+
+    # Le facteur de mise à l'échelle doit être le plus petit pour éviter que l'image dépasse
+    scale = min(scale_x, scale_y)
+
+    print(f"Dimensions de l'image SVG: {width}x{height} pixels")
+    print(f"Facteur de mise à l'échelle calculé: {scale:.4f}")
+
+    return scale
+
+# Calculer automatiquement le scale
+SCALE = calculate_scale(SVG_FILE)
 
 # Charger le SVG
 paths, attributes, svg_attributes = svg2paths2(SVG_FILE)
