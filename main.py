@@ -8,7 +8,7 @@ from xml.etree import ElementTree as ET
 # === CONFIGURATION ===
 SVG_FILE = "coeur.svg"
 STEP_SIZE = 2       # mm
-MAX_SIZE = 300      # 46 cm = 460 mm (maximum size in mm for X and Y)
+MAX_SIZE = 300      
 SERIAL_PORT = "/dev/ttyUSB0"
 BAUD_RATE = 115200
 

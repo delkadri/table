@@ -3,13 +3,14 @@ import serial
 import time
 import math
 from svgpathtools import svg2paths2
+from xml.etree import ElementTree as ET
 
 # === CONFIGURATION ===
 SVG_FILE = "coeur.svg"
 STEP_SIZE = 2       # mm
-SCALE = 5       # Ex: 1px = 0.1mm (à ajuster)
 SERIAL_PORT = "/dev/ttyUSB0"
 BAUD_RATE = 115200
+MAX_SIZE = 300  
 
 print("Connexion à l'ESP32...")
 ser = serial.Serial(SERIAL_PORT, BAUD_RATE, timeout=1)
