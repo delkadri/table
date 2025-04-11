@@ -5,9 +5,9 @@ from svgpathtools import svg2paths2
 import xml.etree.ElementTree as ET
 
 # === CONFIGURATION ===
-SVG_FILE = "ton_image.svg"     # Remplace par ton fichier
+SVG_FILE = "image_svg.svg"     # Remplace par ton fichier
 STEP_SIZE = 2                  # mm
-MAX_SIZE = 200                 # mm (côté max de ta surface)
+MAX_SIZE = 300                 # mm (côté max de ta surface)
 SERIAL_PORT = "/dev/ttyUSB0"   # À adapter
 BAUD_RATE = 115200
 
