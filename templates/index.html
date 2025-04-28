@@ -4,19 +4,7 @@
     <meta charset="UTF-8">
     <title>Sélection de dessin</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-    <style>
-        .image-option {
-            border: 2px solid transparent;
-            padding: 10px;
-            display: inline-block;
-            margin: 10px;
-            cursor: pointer;
-        }
-        .image-option.selected {
-            border-color: blue;
-            background-color: #e6f0ff;
-        }
-    </style>
+    
     <script>
         let selectedFilename = "";
 
@@ -52,9 +40,19 @@
     <form id="imageForm" method="POST">
         <input type="hidden" id="selectedImage" name="example">
 
-        <div class="image-option" onclick="selectImage('coeur.svg', this)">❤️ Cœur</div>
-        <div class="image-option" onclick="selectImage('triangle.svg', this)">🔺 Triangle</div>
-        <div class="image-option" onclick="selectImage('spirale.svg', this)">🌀 Spirale</div>
+        <div class="images-grid">
+            <div class="image-option" onclick="selectImage('coeur.svg', this)">
+                <img src="{{ url_for('static', filename='svg/coeur.svg') }}" alt="Coeur">
+            </div>
+        
+            <div class="image-option" onclick="selectImage('triangle.svg', this)">
+                <img src="{{ url_for('static', filename='svg/triangle.svg') }}" alt="Triangle">
+            </div>
+        
+            <div class="image-option" onclick="selectImage('spirale.svg', this)">
+                <img src="{{ url_for('static', filename='svg/spirale.svg') }}" alt="Spirale">
+            </div>
+        </div>
 
         <div id="download-section" style="display:none; margin-top: 20px;">
             <button type="submit" name="confirm_selection" value="1">Télécharger l'image sélectionnée</button>

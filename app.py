@@ -29,7 +29,8 @@ def index():
         # Lancer le dessin
         elif "draw" in request.form:
             subprocess.Popen(["python3", "main.py"])
-            return "<h1>Dessin lancé !</h1><a href='/'>Retour</a>"
+            return render_template("loading.html")
+
 
     return render_template("index.html", downloaded=downloaded)
 

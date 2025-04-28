@@ -1,9 +1,12 @@
 body {
     font-family: Arial, sans-serif;
-    background-color: #f2f2f2;
-    text-align: center;
+    background: linear-gradient(to bottom right, #eef2f3, #bbddf3); /* joli dégradé */
+    min-height: 100vh;
+    margin: 0;
     padding: 40px;
+    text-align: center;
 }
+
 
 h2, h3 {
     color: #333;
@@ -34,4 +37,40 @@ form {
 
 p {
     color: #555;
+}
+.images-grid {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 30px;
+}
+
+.image-option {
+    border: 3px solid transparent;
+    border-radius: 12px;
+    background-color: white;
+    padding: 20px;
+    width: 150px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.3s;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.image-option img {
+    max-width: 80%;
+    max-height: 80%;
+}
+
+.image-option:hover {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.image-option.selected {
+    border-color: #007BFF;
+    background-color: #e6f0ff;
 }
