@@ -2,3 +2,26 @@ sudo apt update
 sudo apt install libcamera-dev libcamera-apps
 
 sudo apt install python3-libcamera
+
+
+(venv) table_tracante@raspberrypi:~/Desktop/projet_test/table $ libcamera-hello
+[1:03:46.373047888] [17472]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+53-29156679
+[1:03:46.433441102] [17487]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
+[1:03:46.438504922] [17487]  INFO RPI vc4.cpp:447 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media3 and ISP device /dev/media0
+[1:03:46.438712142] [17487]  INFO RPI pipeline_base.cpp:1121 Using configuration file '/usr/share/libcamera/pipeline/rpi/vc4/rpi_apps.yaml'
+Made X/EGL preview window
+Mode selection for 1296:972:12:P
+    SGBRG10_CSI2P,640x480/0 - Score: 3296
+    SGBRG10_CSI2P,1296x972/0 - Score: 1000
+    SGBRG10_CSI2P,1920x1080/0 - Score: 1349.67
+    SGBRG10_CSI2P,2592x1944/0 - Score: 1567
+Stream configuration adjusted
+[1:03:46.747684951] [17472]  INFO Camera camera.cpp:1202 configuring streams: (0) 1296x972-YUV420 (1) 1296x972-SGBRG10_CSI2P
+[1:03:46.757105675] [17487]  INFO RPI vc4.cpp:622 Sensor: /base/soc/i2c0mux/i2c@1/ov5647@36 - Selected sensor format: 1296x972-SGBRG10_1X10 - Selected unicam format: 1296x972-pGAA
+(venv) table_tracante@raspberrypi:~/Desktop/projet_test/table $ python3 csc.py 
+Traceback (most recent call last):
+  File "/home/table_tracante/Desktop/projet_test/table/csc.py", line 3, in <module>
+    from picamera2 import Picamera2
+  File "/home/table_tracante/Desktop/projet_test/table/venv/lib/python3.11/site-packages/picamera2/__init__.py", line 4, in <module>
+    import libcamera
+ModuleNotFoundError: No module named 'libcamera'
