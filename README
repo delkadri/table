@@ -8,3 +8,8 @@ pip install flask
 pip install opencv-python
 pip install picamera2
 python3 -m venv --system-site-packages venv
+
+#si la camera tourne et ne fonctionne pas
+
+lsof /dev/video*
+sudo kill -9 <PID>
