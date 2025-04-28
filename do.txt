@@ -1,29 +1,68 @@
-sudo apt update
-sudo apt install libcamera-dev libcamera-apps
+# --- Variables ---
+plan_corners = None
+origin_set = False
+pen_origin = None  # <-- on ajoute cette variable
 
-sudo apt install python3-libcamera
+...
 
-(venv) table_tracante@raspberrypi:~/Desktop/projet_test/table $ python3 csc.py 
-[1:11:05.390773020] [19255]  INFO Camera camera_manager.cpp:327 libcamera v0.4.0+53-29156679
-[1:11:05.424049924] [19263]  WARN RPiSdn sdn.cpp:40 Using legacy SDN tuning - please consider moving SDN inside rpi.denoise
-[1:11:05.427802315] [19263]  INFO RPI vc4.cpp:447 Registered camera /base/soc/i2c0mux/i2c@1/ov5647@36 to Unicam device /dev/media3 and ISP device /dev/media0
-[1:11:05.428438158] [19263]  INFO RPI pipeline_base.cpp:1121 Using configuration file '/usr/share/libcamera/pipeline/rpi/vc4/rpi_apps.yaml'
-[1:11:05.436090829] [19255]  INFO Camera camera.cpp:1008 Pipeline handler in use by another process
-Camera __init__ sequence did not complete.
-Traceback (most recent call last):
-  File "/home/table_tracante/Desktop/projet_test/table/venv/lib/python3.11/site-packages/picamera2/picamera2.py", line 269, in __init__
-    self._open_camera()
-  File "/home/table_tracante/Desktop/projet_test/table/venv/lib/python3.11/site-packages/picamera2/picamera2.py", line 477, in _open_camera
-    self.camera.acquire()
-RuntimeError: Failed to acquire camera: Device or resource busy
+# --- Boucle principale ---
+try:
+    while True:
+        frame = picam2.capture_array()
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
 
-During handling of the above exception, another exception occurred:
+        # 1. Détection des coins bleus
+        if not origin_set:
+            plan_corners = detect_blue_corners(frame_bgr)
+            if plan_corners is not None:
+                origin_set = True
+                print(f"[Plan] 4 coins détectés.")
+        else:
+            # Dessiner le cadre
+            for i in range(4):
+                pt1 = tuple(plan_corners[i])
+                pt2 = tuple(plan_corners[(i + 1) % 4])
+                cv2.line(frame_bgr, pt1, pt2, (255, 0, 0), 2)
 
-Traceback (most recent call last):
-  File "/home/table_tracante/Desktop/projet_test/table/csc.py", line 10, in <module>
-    picam2 = Picamera2()
-             ^^^^^^^^^^^
-  File "/home/table_tracante/Desktop/projet_test/table/venv/lib/python3.11/site-packages/picamera2/picamera2.py", line 281, in __init__
-    raise RuntimeError("Camera __init__ sequence did not complete.")
-RuntimeError: Camera __init__ sequence did not complete.
-(venv) table_tracante@raspberrypi:~/Desktop/projet_test/table $ 
+        # 2. Détection du crayon rouge
+        pen_pos = detect_red_pen(frame_bgr)
+        if pen_pos:
+            cv2.circle(frame_bgr, pen_pos, 8, (0, 255, 0), -1)
+
+            if origin_set:
+                pos_cm = map_point_to_plan(pen_pos, plan_corners)
+                if pos_cm:
+                    x_cm, y_cm = pos_cm
+
+                    # Enregistrer l'origine au premier point détecté
+                    if pen_origin is None:
+                        pen_origin = (x_cm, y_cm)
+                        print(f"[Origine crayon] X={pen_origin[0]:.2f} cm, Y={pen_origin[1]:.2f} cm")
+
+                    # Calcul de la position relative par rapport à pen_origin
+                    rel_x = x_cm - pen_origin[0]
+                    rel_y = y_cm - pen_origin[1]
+
+                    cv2.putText(frame_bgr, f"X={rel_x:.2f}cm, Y={rel_y:.2f}cm", (10, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    
+                    with open(SAVE_FILE, "w") as f:
+                        f.write(f"{rel_x:.2f},{rel_y:.2f}")
+
+                    print(f"[Position relative] X={rel_x:.2f} cm, Y={rel_y:.2f} cm")
+
+        # Affichage
+        cv2.imshow("Live Stream", frame_bgr)
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == ord('q'):
+            break
+        elif key == ord('r'):
+            origin_set = False
+            pen_origin = None  # <-- aussi reset l'origine du crayon
+            print("[Reset] Nouvelle détection des coins et du point d'origine.")
+
+finally:
+    picam2.stop()
+    cv2.destroyAllWindows()
+    print("✅ Fin de la détection.")
