@@ -7,4 +7,4 @@ pip install pyserial
 pip install flask
 pip install opencv-python
 pip install picamera2
-
+python3 -m venv --system-site-packages venv
