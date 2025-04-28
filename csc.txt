@@ -1,0 +1,140 @@
+import cv2
+import numpy as np
+from picamera2 import Picamera2
+
+# --- Configuration ---
+SCALE_CM = 20  # Taille réelle du plan en cm
+SAVE_FILE = "position_relative.txt"
+
+# --- Initialisation caméra ---
+picam2 = Picamera2()
+picam2.configure(picam2.create_preview_configuration())
+picam2.start()
+
+print("Détection en cours... Appuyez sur 'q' pour quitter, 'r' pour réinitialiser.")
+
+# --- Variables ---
+plan_corners = None
+origin_set = False
+
+# --- Fonctions ---
+def detect_blue_corners(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([100, 150, 0])
+    upper_blue = np.array([140, 255, 255])
+    mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
+
+    contours, _ = cv2.findContours(mask_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    centers = []
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 50:  # Petits morceaux seulement
+            M = cv2.moments(cnt)
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                centers.append((cX, cY))
+
+    if len(centers) == 4:
+        centers = order_points(centers)
+        return np.array(centers)
+    else:
+        return None
+
+def order_points(pts):
+    # Trier les points dans l'ordre : haut-gauche, haut-droit, bas-droit, bas-gauche
+    pts = np.array(pts)
+    s = pts.sum(axis=1)
+    diff = np.diff(pts, axis=1)
+
+    top_left = pts[np.argmin(s)]
+    bottom_right = pts[np.argmax(s)]
+    top_right = pts[np.argmin(diff)]
+    bottom_left = pts[np.argmax(diff)]
+
+    return [top_left, top_right, bottom_right, bottom_left]
+
+def detect_red_pen(frame):
+    lower_red = np.array([0, 0, 170])
+    upper_red = np.array([64, 64, 255])
+    mask_red = cv2.inRange(frame, lower_red, upper_red)
+    contours, _ = cv2.findContours(mask_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if contours:
+        largest = max(contours, key=cv2.contourArea)
+        M = cv2.moments(largest)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            return (cX, cY)
+    return None
+
+def map_point_to_plan(pt, corners):
+    src_pts = np.array(corners, dtype="float32")
+    dst_pts = np.array([
+        [0, 0],
+        [SCALE_CM, 0],
+        [SCALE_CM, SCALE_CM],
+        [0, SCALE_CM]
+    ], dtype="float32")
+
+    matrix, _ = cv2.findHomography(src_pts, dst_pts)
+    if matrix is None:
+        return None
+
+    pt_homog = np.array([pt[0], pt[1], 1], dtype="float32").reshape(3, 1)
+    mapped = np.dot(matrix, pt_homog)
+    mapped /= mapped[2]
+    x_cm, y_cm = mapped[0][0], mapped[1][0]
+    return x_cm, y_cm
+
+# --- Boucle principale ---
+try:
+    while True:
+        frame = picam2.capture_array()
+        frame_bgr = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
+
+        # 1. Détection des coins bleus
+        if not origin_set:
+            plan_corners = detect_blue_corners(frame_bgr)
+            if plan_corners is not None:
+                origin_set = True
+                print(f"[Plan] 4 coins détectés.")
+        else:
+            # Dessiner le cadre
+            for i in range(4):
+                pt1 = tuple(plan_corners[i])
+                pt2 = tuple(plan_corners[(i + 1) % 4])
+                cv2.line(frame_bgr, pt1, pt2, (255, 0, 0), 2)
+
+        # 2. Détection du crayon rouge
+        pen_pos = detect_red_pen(frame_bgr)
+        if pen_pos:
+            cv2.circle(frame_bgr, pen_pos, 8, (0, 255, 0), -1)
+
+            if origin_set:
+                pos_cm = map_point_to_plan(pen_pos, plan_corners)
+                if pos_cm:
+                    x_cm, y_cm = pos_cm
+                    cv2.putText(frame_bgr, f"X={x_cm:.2f}cm, Y={y_cm:.2f}cm", (10, 30),
+                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+                    with open(SAVE_FILE, "w") as f:
+                        f.write(f"{x_cm:.2f},{y_cm:.2f}")
+
+                    print(f"[Position] X={x_cm:.2f} cm, Y={y_cm:.2f} cm")
+
+        # Affichage
+        cv2.imshow("Live Stream", frame_bgr)
+        key = cv2.waitKey(1) & 0xFF
+
+        if key == ord('q'):
+            break
+        elif key == ord('r'):
+            origin_set = False
+            print("[Reset] Nouvelle détection des coins.")
+
+finally:
+    picam2.stop()
+    cv2.destroyAllWindows()
+    print("✅ Fin de la détection.")
