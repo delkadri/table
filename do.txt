@@ -1,9 +1,93 @@
+import cv2
+import numpy as np
+from picamera2 import Picamera2
+
+# --- Configuration ---
+SCALE_CM = 20  # Taille réelle du plan en cm
+SAVE_FILE = "position_relative.txt"
+
+# --- Initialisation caméra ---
+picam2 = Picamera2()
+picam2.configure(picam2.create_preview_configuration())
+picam2.start()
+
+print("Détection en cours... Appuyez sur 'q' pour quitter, 'r' pour réinitialiser.")
+
 # --- Variables ---
 plan_corners = None
 origin_set = False
-pen_origin = None  # <-- on ajoute cette variable
+pen_origin = None  # <-- Pour enregistrer l'origine du crayon
 
-...
+# --- Fonctions ---
+def detect_blue_corners(frame):
+    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+    lower_blue = np.array([100, 150, 0])
+    upper_blue = np.array([140, 255, 255])
+    mask_blue = cv2.inRange(hsv, lower_blue, upper_blue)
+
+    contours, _ = cv2.findContours(mask_blue, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    centers = []
+
+    for cnt in contours:
+        area = cv2.contourArea(cnt)
+        if area > 50:  # Seules petites taches bleues
+            M = cv2.moments(cnt)
+            if M["m00"] != 0:
+                cX = int(M["m10"] / M["m00"])
+                cY = int(M["m01"] / M["m00"])
+                centers.append((cX, cY))
+
+    if len(centers) == 4:
+        centers = order_points(centers)
+        return np.array(centers)
+    else:
+        return None
+
+def order_points(pts):
+    pts = np.array(pts)
+    s = pts.sum(axis=1)
+    diff = np.diff(pts, axis=1)
+
+    top_left = pts[np.argmin(s)]
+    bottom_right = pts[np.argmax(s)]
+    top_right = pts[np.argmin(diff)]
+    bottom_left = pts[np.argmax(diff)]
+
+    return [top_left, top_right, bottom_right, bottom_left]
+
+def detect_red_pen(frame):
+    lower_red = np.array([0, 0, 170])
+    upper_red = np.array([64, 64, 255])
+    mask_red = cv2.inRange(frame, lower_red, upper_red)
+    contours, _ = cv2.findContours(mask_red, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if contours:
+        largest = max(contours, key=cv2.contourArea)
+        M = cv2.moments(largest)
+        if M["m00"] != 0:
+            cX = int(M["m10"] / M["m00"])
+            cY = int(M["m01"] / M["m00"])
+            return (cX, cY)
+    return None
+
+def map_point_to_plan(pt, corners):
+    src_pts = np.array(corners, dtype="float32")
+    dst_pts = np.array([
+        [0, 0],
+        [SCALE_CM, 0],
+        [SCALE_CM, SCALE_CM],
+        [0, SCALE_CM]
+    ], dtype="float32")
+
+    matrix, _ = cv2.findHomography(src_pts, dst_pts)
+    if matrix is None:
+        return None
+
+    pt_homog = np.array([pt[0], pt[1], 1], dtype="float32").reshape(3, 1)
+    mapped = np.dot(matrix, pt_homog)
+    mapped /= mapped[2]
+    x_cm, y_cm = mapped[0][0], mapped[1][0]
+    return x_cm, y_cm
 
 # --- Boucle principale ---
 try:
@@ -18,7 +102,7 @@ try:
                 origin_set = True
                 print(f"[Plan] 4 coins détectés.")
         else:
-            # Dessiner le cadre
+            # Dessiner le cadre bleu
             for i in range(4):
                 pt1 = tuple(plan_corners[i])
                 pt2 = tuple(plan_corners[(i + 1) % 4])
@@ -34,32 +118,35 @@ try:
                 if pos_cm:
                     x_cm, y_cm = pos_cm
 
-                    # Enregistrer l'origine au premier point détecté
+                    # Fixer l'origine à la première détection
                     if pen_origin is None:
                         pen_origin = (x_cm, y_cm)
                         print(f"[Origine crayon] X={pen_origin[0]:.2f} cm, Y={pen_origin[1]:.2f} cm")
 
-                    # Calcul de la position relative par rapport à pen_origin
+                    # Calcul de la position relative
                     rel_x = x_cm - pen_origin[0]
                     rel_y = y_cm - pen_origin[1]
 
+                    # Affichage sur la fenêtre
                     cv2.putText(frame_bgr, f"X={rel_x:.2f}cm, Y={rel_y:.2f}cm", (10, 30),
                                 cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                    
+
+                    # Sauvegarde dans un fichier
                     with open(SAVE_FILE, "w") as f:
                         f.write(f"{rel_x:.2f},{rel_y:.2f}")
 
                     print(f"[Position relative] X={rel_x:.2f} cm, Y={rel_y:.2f} cm")
 
-        # Affichage
+        # 3. Affichage de l'image
         cv2.imshow("Live Stream", frame_bgr)
         key = cv2.waitKey(1) & 0xFF
 
+        # 4. Gestion des touches clavier
         if key == ord('q'):
             break
         elif key == ord('r'):
             origin_set = False
-            pen_origin = None  # <-- aussi reset l'origine du crayon
+            pen_origin = None
             print("[Reset] Nouvelle détection des coins et du point d'origine.")
 
 finally:
