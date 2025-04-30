@@ -5,9 +5,9 @@ from svgpathtools import svg2paths2
 import xml.etree.ElementTree as ET
 
 # === CONFIGURATION ===
-SVG_FILE = "image_svg.svg"     # Remplace par ton fichier
+SVG_FILE = "image_svg.svg"     # Remplace par le fichier
 STEP_SIZE = 2                  # mm
-MAX_SIZE = 250                # mm (côté max de ta surface)
+MAX_SIZE = 250                # mm (côté max de la surface)
 SERIAL_PORT = "/dev/ttyUSB0"   # À adapter
 BAUD_RATE = 115200
 
@@ -30,7 +30,7 @@ def send_command(cmd):
 def is_far_enough(x1, y1, x2, y2, threshold=0.01):
     return math.hypot(x2 - x1, y2 - y1) > threshold
 
-# === NOUVELLE MÉTHODE : BOUNDS RÉELS ===
+# BOUNDS RÉELS ===
 def calculate_real_bounds(paths):
     min_x = min_y = float("inf")
     max_x = max_y = float("-inf")
