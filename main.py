@@ -1,3 +1,12 @@
+# ------------------------------------------------------------
+# Fait par :BENFETIMA Mohamed Cherif, EL BOUCHRAOUI Ilhame, EL NAWAR Sandra, EL KADRI Dany,
+# FADEL Mia, MEFTAH Ouefae
+# Lieu     : Orsay, France
+# Date     : 30 avril 2025
+# Projet   : Table Tracante
+# ------------------------------------------------------------
+
+
 import serial
 import time
 import math
